@@ -33,7 +33,7 @@ class AuthorizationController {
     }
 
     @ResponseStatus
-    @PostMapping
+    @PostMapping("/logout")
     fun logout(@RequestParam(value = AUTHORIZATION_KEY_PARAM) key: String): ResponseEntity<Any> =
         echatModel.authorizedUserMap(key, HttpStatus.FORBIDDEN) {
             echatModel.removeAuthorization(it)
