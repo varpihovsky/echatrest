@@ -4,8 +4,11 @@ import com.varpihovsky.echat.rest.controllers.AUTHORIZATION_KEY_PARAM
 import com.varpihovsky.echat.rest.controllers.ID_PARAM
 import com.varpihovsky.echat.rest.controllers.LOGIN_PARAM
 import com.varpihovsky.echat.rest.controllers.PASSWORD_PARAM
-import com.varpihovsky.echat.rest.controllers.authorize.Account
+import com.varpihovsky.echat.rest.controllers.response.ResponseList
 import com.varpihovsky.echat.rest.model.EchatModel
+import com.varpihovsky.echat.rest.model.dto.AccountWithPasswordDTO
+import com.varpihovsky.echat.rest.model.dto.AccountWithoutPasswordDTO
+import com.varpihovsky.echat.rest.model.dto.factory.DTOFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -17,49 +20,46 @@ class ProfileController {
     @Autowired
     private lateinit var echatModel: EchatModel
 
+    @Autowired
+    private lateinit var dtoFactory: DTOFactory
+
     @ResponseStatus
     @PostMapping("/register")
     fun register(
-        @RequestParam(value = LOGIN_PARAM) login: String,
-        @RequestParam(value = PASSWORD_PARAM) password: String
-    ): ResponseEntity<String> {
+            @RequestParam(value = LOGIN_PARAM) login: String,
+            @RequestParam(value = PASSWORD_PARAM) password: String
+    ): ResponseEntity<AccountWithPasswordDTO> {
         return if (!echatModel.verifyUserExisting(login) && password.length >= 8) {
-            echatModel.createUser(login, password)
-            ResponseEntity(REGISTRATION_SUCCESS, HttpStatus.ACCEPTED)
+            ResponseEntity.accepted()
+                    .body(dtoFactory.createDTO(echatModel.createUser(login, password), DTOFactory.ACCOUNT_WITH_PASSWORD) as AccountWithPasswordDTO)
         } else {
-            ResponseEntity(REGISTRATION_FAILURE, HttpStatus.BAD_REQUEST)
+            ResponseEntity(HttpStatus.NOT_ACCEPTABLE)
         }
     }
 
     @ResponseBody
     @GetMapping("/get/by-key")
-    fun profileByKey(@RequestParam(value = AUTHORIZATION_KEY_PARAM) key: String): ResponseEntity<Account> =
-        echatModel.authorizedUserMap(key, HttpStatus.FORBIDDEN) {
-            ResponseEntity.ok(it)
-        }
+    fun profileByKey(@RequestParam(value = AUTHORIZATION_KEY_PARAM) key: String): ResponseEntity<AccountWithPasswordDTO> =
+            echatModel.authorizedUserMap(key, HttpStatus.FORBIDDEN) {
+                ResponseEntity.ok(dtoFactory.createDTO(it, DTOFactory.ACCOUNT_WITH_PASSWORD))
+            }
 
 
     @ResponseBody
     @GetMapping("/get/by-id")
     fun profileById(
-        @RequestParam(value = AUTHORIZATION_KEY_PARAM) key: String,
-        @RequestParam(value = ID_PARAM) id: Long
-    ): ResponseEntity<Account> =
-        echatModel.authorizedUserMap(key, HttpStatus.FORBIDDEN) {
-            ResponseEntity.ok(echatModel.getUserById(id)?.hideAuthorizationAndPassword())
-        }
+            @RequestParam(value = AUTHORIZATION_KEY_PARAM) key: String,
+            @RequestParam(value = ID_PARAM) id: Long
+    ): ResponseEntity<AccountWithoutPasswordDTO> =
+            echatModel.authorizedUserMap(key, HttpStatus.FORBIDDEN) {
+                ResponseEntity.ok(dtoFactory.createDTO(it))
+            }
 
 
     @ResponseBody
     @GetMapping("/get/all")
-    fun allProfiles(@RequestParam(value = AUTHORIZATION_KEY_PARAM) key: String): ResponseEntity<List<Account>> =
-        echatModel.authorizedUserMap(key, HttpStatus.FORBIDDEN) {
-            ResponseEntity.ok(echatModel.getAllUsers().map { it.hideAuthorizationAndPassword() })
-        }
-
-
-    companion object {
-        private const val REGISTRATION_SUCCESS = "User registered successfully"
-        private const val REGISTRATION_FAILURE = "User with this login is exists or password length less than 8"
-    }
+    fun allProfiles(@RequestParam(value = AUTHORIZATION_KEY_PARAM) key: String): ResponseEntity<ResponseList<AccountWithoutPasswordDTO>> =
+            echatModel.authorizedUserMap(key, HttpStatus.FORBIDDEN) {
+                ResponseEntity.ok(ResponseList(echatModel.getAllUsers().map { dtoFactory.createDTO(it) }))
+            }
 }

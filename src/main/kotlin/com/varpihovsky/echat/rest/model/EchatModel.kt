@@ -1,6 +1,7 @@
 package com.varpihovsky.echat.rest.model
 
-import com.varpihovsky.echat.rest.controllers.authorize.*
+import com.varpihovsky.echat.rest.model.dao.*
+import com.varpihovsky.echat.rest.model.database.*
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -25,31 +26,31 @@ class EchatModel {
     @Autowired
     private lateinit var readHistoryRepository: ReadHistoryRepository
 
-    fun <T> authorizedUserMap(key: String, failedStatus: HttpStatus, block: (Account) -> ResponseEntity<T>)
+    fun <T> authorizedUserMap(key: String, failedStatus: HttpStatus, block: (AccountDAO) -> ResponseEntity<T>)
             : ResponseEntity<T> {
         return if (authorizationRepository.isExistsByKey(key)) {
             accountRepository.findByAuthorizationKey(key, authorizationRepository)?.let { block.invoke(it) }
-                ?: ResponseEntity(failedStatus)
+                    ?: ResponseEntity(failedStatus)
         } else {
             ResponseEntity(failedStatus)
         }
     }
 
-    fun createAuthorization(account: Account): Authorization {
-        val authorization = Authorization.generate(account)
+    fun createAuthorization(accountDAO: AccountDAO): AuthorizationDAO {
+        val authorization = AuthorizationDAO.generate(accountDAO)
         authorizationRepository.save(authorization)
-        accountRepository.updateAccountAuthorization(account.id, authorization)
+        accountRepository.updateAccountAuthorization(accountDAO.id, authorization)
         return authorization
     }
 
-    fun removeAuthorization(account: Account) {
-        account.authorizationEntity?.let { authorizationRepository.delete(it) }
-        accountRepository.updateAccountAuthorization(account.id, null)
+    fun removeAuthorization(accountDAO: AccountDAO) {
+        accountDAO.authorizationDAOEntity?.let { authorizationRepository.delete(it) }
+        accountRepository.updateAccountAuthorization(accountDAO.id, null)
     }
 
-    fun createUser(login: String, password: String) {
-        accountRepository.save(Account(0, login, password.hashCode().toString(), null))
-    }
+    fun createUser(login: String, password: String) =
+            accountRepository.save(AccountDAO(0, login, password.hashCode().toString(), null))
+
 
     fun verifyUserExisting(login: String) = accountRepository.findByLogin(login) != null
 
@@ -62,7 +63,7 @@ class EchatModel {
 
     fun getUserByLogin(login: String) = accountRepository.findByLogin(login)
 
-    fun getUserById(id: Long): Account? {
+    fun getUserById(id: Long): AccountDAO? {
         accountRepository.findById(id).run {
             return if (isPresent) {
                 get()
@@ -72,17 +73,17 @@ class EchatModel {
         }
     }
 
-    fun getAllUsers(): List<Account> =
-        accountRepository.findAll().toList()
+    fun getAllUsers(): List<AccountDAO> =
+            accountRepository.findAll().toList()
 
-    fun createChat(creator: Account, chatName: String): Chat {
-        Chat(0, chatName, mutableListOf(creator), mutableListOf(creator)).let {
+    fun createChat(creator: AccountDAO, chatName: String): ChatDAO {
+        ChatDAO(0, chatName, mutableListOf(creator), mutableListOf(creator)).let {
             chatRepository.save(it)
             return it
         }
     }
 
-    fun getChat(id: Long): Chat? {
+    fun getChat(id: Long): ChatDAO? {
         chatRepository.findById(id).run {
             return if (isPresent) {
                 get()
@@ -92,49 +93,49 @@ class EchatModel {
         }
     }
 
-    fun isUserIsChatAdmin(account: Account, chatId: Long): Boolean =
-        getChat(chatId)?.chatAdmins?.contains(account) == true
+    fun isUserIsChatAdmin(accountDAO: AccountDAO, chatId: Long): Boolean =
+            getChat(chatId)?.chatAdmins?.contains(accountDAO) == true
 
-    fun isUserIsChatParticipant(account: Account, chatId: Long): Boolean =
-        getChat(chatId)?.chatParticipants?.contains(account) == true
+    fun isUserIsChatParticipant(accountDAO: AccountDAO, chatId: Long): Boolean =
+            getChat(chatId)?.chatParticipants?.contains(accountDAO) == true
 
-    fun addParticipantToChat(account: Account, chatId: Long) {
-        chatRepository.addChatParticipants(chatId, account)
+    fun addParticipantToChat(accountDAO: AccountDAO, chatId: Long) {
+        chatRepository.addChatParticipants(chatId, accountDAO)
     }
 
-    fun removeParticipantFromChat(account: Account, chatId: Long) {
-        chatRepository.removeChatParticipants(chatId, account)
+    fun removeParticipantFromChat(accountDAO: AccountDAO, chatId: Long) {
+        chatRepository.removeChatParticipants(chatId, accountDAO)
     }
 
-    fun addAdminToChat(account: Account, chatId: Long) {
-        chatRepository.addChatAdmins(chatId, account)
+    fun addAdminToChat(accountDAO: AccountDAO, chatId: Long) {
+        chatRepository.addChatAdmins(chatId, accountDAO)
     }
 
-    fun removeAdminFromChat(account: Account, chatId: Long) {
-        chatRepository.removeChatAdmins(chatId, account)
+    fun removeAdminFromChat(accountDAO: AccountDAO, chatId: Long) {
+        chatRepository.removeChatAdmins(chatId, accountDAO)
     }
 
-    fun getAllChats(): List<Chat> =
-        chatRepository.findAll().toList()
+    fun getAllChats(): List<ChatDAO> =
+            chatRepository.findAll().toList()
 
 
     fun removeChat(id: Long) {
         chatRepository.deleteById(id)
     }
 
-    fun putMessage(from: Account, text: String, chat: Chat, question: Message? = null) {
-        Message(0, text, from, chat, question, Date()).let {
+    fun putMessage(from: AccountDAO, text: String, chatDAO: ChatDAO, question: MessageDAO? = null) {
+        MessageDAO(0, text, from, chatDAO, question, Date()).let {
             messageRepository.save(it)
-            chat.chatParticipants.forEach { participant ->
+            chatDAO.chatParticipants.forEach { participant ->
                 if (from == participant)
                     return@forEach
-                readHistoryRepository.save(ReadEntity(0, participant, it, ReadEntity.Status.NOT_READ))
+                readHistoryRepository.save(ReadHistoryDAO(0, participant, it, ReadHistoryDAO.Status.NOT_READ))
             }
-            readHistoryRepository.save(ReadEntity(0, from, it, ReadEntity.Status.READ))
+            readHistoryRepository.save(ReadHistoryDAO(0, from, it, ReadHistoryDAO.Status.READ))
         }
     }
 
-    fun getMessage(id: Long): Message? {
+    fun getMessage(id: Long): MessageDAO? {
         messageRepository.findById(id).run {
             return if (isPresent) {
                 get()
@@ -144,35 +145,35 @@ class EchatModel {
         }
     }
 
-    fun getMessage(message: Message) = getMessage(message.id)
+    fun getMessage(messageDAO: MessageDAO) = getMessage(messageDAO.id)
 
-    fun getMessagesByChat(chat: Chat): List<Message> =
-        messageRepository.findAllByChat(chat)
+    fun getMessagesByChat(chatDAO: ChatDAO): List<MessageDAO> =
+            messageRepository.findAllByChatDAO(chatDAO)
 
-    fun isUserIsMessageAuthor(account: Account, messageId: Message?) =
-        messageId?.let { getMessage(it)?.sender } == account
+    fun isUserIsMessageAuthor(accountDAO: AccountDAO, messageDAOId: MessageDAO?) =
+            messageDAOId?.let { getMessage(it)?.sender } == accountDAO
 
     fun setMessageRead(messageId: Long) {
         getMessage(messageId)?.let {
-            readHistoryRepository.findByMessage(it)
-                ?.let { readEntity -> readHistoryRepository.save(readEntity.apply { status = ReadEntity.Status.READ }) }
+            readHistoryRepository.findByMessageDAO(it)
+                    ?.let { readEntity -> readHistoryRepository.save(readEntity.apply { status = ReadHistoryDAO.Status.READ }) }
         }
     }
 
-    fun getAllUnreadMessagesByUser(account: Account): List<Message> =
-        readHistoryRepository.findAllByReaderAndStatus(account, ReadEntity.Status.NOT_READ).map {
-            var message = it.message
-            message.sender.removeAuthorizationAndPasswordFromEntity()
-            while (true) {
-                var receiver = message.receiver
-                receiver?.sender?.removeAuthorizationAndPasswordFromEntity()
-                if (receiver == null) break
-            }
+    fun getAllUnreadMessagesByUser(accountDAO: AccountDAO): List<MessageDAO> =
+            readHistoryRepository.findAllByReaderAndStatus(accountDAO, ReadHistoryDAO.Status.NOT_READ).map {
+                var message = it.messageDAO
+                message.sender.removeAuthorizationAndPasswordFromEntity()
+                while (true) {
+                    var receiver = message.receiver
+                    receiver?.sender?.removeAuthorizationAndPasswordFromEntity()
+                    if (receiver == null) break
+                }
 
-            message.chat.apply {
-                chatParticipants.onEach { participant -> participant.removeAuthorizationAndPasswordFromEntity() }
-                chatAdmins.onEach { admin -> admin.removeAuthorizationAndPasswordFromEntity() }
-            }
+                message.chatDAO.apply {
+                    chatParticipants.onEach { participant -> participant.removeAuthorizationAndPasswordFromEntity() }
+                    chatAdmins.onEach { admin -> admin.removeAuthorizationAndPasswordFromEntity() }
+                }
 
             message
         }.sortedBy { it.created }

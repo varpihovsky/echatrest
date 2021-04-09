@@ -1,7 +1,7 @@
 package com.varpihovsky.echat.rest.model
 
-import com.varpihovsky.echat.rest.controllers.authorize.AccountRepository
-import com.varpihovsky.echat.rest.controllers.authorize.AuthorizationRepository
+import com.varpihovsky.echat.rest.model.database.AccountRepository
+import com.varpihovsky.echat.rest.model.database.AuthorizationRepository
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.annotation.Configuration
 import org.springframework.scheduling.annotation.EnableScheduling
@@ -21,10 +21,10 @@ class ScheduledActions {
     fun clearAuthorizations() {
         authorizationRepository.findAll().forEach {
             if (Date().time - it.created.time > EIGHT_HOURS) {
-                accountRepository.findByAuthorizationEntity(it)?.let { it1 ->
+                accountRepository.findByAuthorizationDAOEntity(it)?.let { it1 ->
                     accountRepository.removeAuthorization(
-                        authorizationRepository,
-                        it1, it
+                            authorizationRepository,
+                            it1, it
                     )
                 }
             }
@@ -32,6 +32,6 @@ class ScheduledActions {
     }
 
     companion object {
-        private const val EIGHT_HOURS = 2800000L
+        private const val EIGHT_HOURS = 2800000L //in milliseconds
     }
 }

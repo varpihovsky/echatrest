@@ -3,8 +3,9 @@ package com.varpihovsky.echat.rest.controllers.authorize
 import com.varpihovsky.echat.rest.controllers.AUTHORIZATION_KEY_PARAM
 import com.varpihovsky.echat.rest.controllers.LOGIN_PARAM
 import com.varpihovsky.echat.rest.controllers.PASSWORD_PARAM
-import com.varpihovsky.echat.rest.controllers.ResponseKey
 import com.varpihovsky.echat.rest.model.EchatModel
+import com.varpihovsky.echat.rest.model.dto.AuthorizationDTO
+import com.varpihovsky.echat.rest.model.dto.factory.DTOFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -16,20 +17,21 @@ class AuthorizationController {
     @Autowired
     private lateinit var echatModel: EchatModel
 
+    @Autowired
+    private lateinit var dtoFactory: DTOFactory
+
     @ResponseBody
     @GetMapping("/authorize")
     fun authorize(
-        @RequestParam(value = LOGIN_PARAM) login: String,
-        @RequestParam(value = PASSWORD_PARAM) password: String
-    ): ResponseEntity<ResponseKey>? {
-
+            @RequestParam(value = LOGIN_PARAM) login: String,
+            @RequestParam(value = PASSWORD_PARAM) password: String
+    ): ResponseEntity<AuthorizationDTO>? {
         if (echatModel.verifyUserExisting(login) && echatModel.checkLoginAndPassword(login, password)) {
             echatModel.getUserByLogin(login)?.let {
-                return ResponseEntity.ok(ResponseKey(echatModel.createAuthorization(it).key))
-                    .apply { println("$login $password passed") }
+                return ResponseEntity.ok(dtoFactory.createDTO(echatModel.createAuthorization(it)))
             }
         }
-        return ResponseEntity<ResponseKey>(HttpStatus.BAD_REQUEST).apply { println("$login $password refused") }
+        return ResponseEntity<AuthorizationDTO>(HttpStatus.BAD_REQUEST)
     }
 
     @ResponseStatus
@@ -39,5 +41,4 @@ class AuthorizationController {
             echatModel.removeAuthorization(it)
             ResponseEntity<Any>(HttpStatus.OK)
         }
-
 }
