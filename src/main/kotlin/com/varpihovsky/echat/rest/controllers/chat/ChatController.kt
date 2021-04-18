@@ -48,21 +48,31 @@ class ChatController {
             }
 
     @ResponseBody
-    @GetMapping("get-all")
+    @GetMapping("/get/all")
     fun getAllChats(@RequestParam(name = AUTHORIZATION_KEY_PARAM) key: String): ResponseEntity<ResponseList<ChatDTO>> =
-            echatModel.authorizedUserMap(key, HttpStatus.FORBIDDEN) {
-                ResponseEntity.ok(ResponseList(echatModel.getAllChats().map { dtoFactory.createDTO(it) }))
-            }
+        echatModel.authorizedUserMap(key, HttpStatus.FORBIDDEN) {
+            ResponseEntity.ok(ResponseList(echatModel.getAllChats().map { dtoFactory.createDTO(it) }))
+        }
+
+    @ResponseBody
+    @GetMapping("get/by-participant")
+    fun getUserChats(
+        @RequestParam(name = AUTHORIZATION_KEY_PARAM) key: String,
+        @RequestParam(name = ID_PARAM) id: Long
+    ) =
+        echatModel.authorizedUserMap(key, HttpStatus.FORBIDDEN) {
+            ResponseEntity.ok(ResponseList(echatModel.getAllChatsByUser(it).map { dtoFactory.createDTO(it) }))
+        }
 
     @ResponseStatus
     @PostMapping("/add/participant")
     fun addParticipantToChat(
-            @RequestParam(name = AUTHORIZATION_KEY_PARAM) key: String,
-            @RequestParam(name = CHAT_ID_PARAM) chatId: Long,
-            @RequestParam(name = LOGIN_PARAM, required = false) login: String?,
-            @RequestParam(name = ID_PARAM, required = false) participantId: Long?
+        @RequestParam(name = AUTHORIZATION_KEY_PARAM) key: String,
+        @RequestParam(name = CHAT_ID_PARAM) chatId: Long,
+        @RequestParam(name = LOGIN_PARAM, required = false) login: String?,
+        @RequestParam(name = ID_PARAM, required = false) participantId: Long?
     ): ResponseEntity<Any> =
-            if (login != null && participantId == null) {
+        if (login != null && participantId == null) {
                 addParticipantToChatByLogin(key, chatId, login)
             } else if (login == null && participantId != null) {
                 addParticipantToChatById(key, chatId, participantId)
