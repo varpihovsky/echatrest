@@ -30,7 +30,7 @@ class EchatModel {
             : ResponseEntity<T> {
         return if (authorizationRepository.isExistsByKey(key)) {
             accountRepository.findByAuthorizationKey(key, authorizationRepository)?.let { block.invoke(it) }
-                    ?: ResponseEntity(failedStatus)
+                ?: ResponseEntity(failedStatus)
         } else {
             ResponseEntity(failedStatus)
         }
@@ -49,7 +49,7 @@ class EchatModel {
     }
 
     fun createUser(login: String, password: String) =
-            accountRepository.save(AccountDAO(0, login, password.hashCode().toString(), null))
+        accountRepository.save(AccountDAO(0, login, password.hashCode().toString(), null))
 
 
     fun verifyUserExisting(login: String) = accountRepository.findByLogin(login) != null
@@ -74,7 +74,7 @@ class EchatModel {
     }
 
     fun getAllUsers(): List<AccountDAO> =
-            accountRepository.findAll().toList()
+        accountRepository.findAll().toList()
 
     fun createChat(creator: AccountDAO, chatName: String): ChatDAO {
         ChatDAO(0, chatName, mutableListOf(creator), mutableListOf(creator)).let {
@@ -118,7 +118,7 @@ class EchatModel {
     }
 
     fun getAllChats(): List<ChatDAO> =
-            chatRepository.findAll().toList()
+        chatRepository.findAll().toList()
 
 
     fun removeChat(id: Long) {
@@ -150,34 +150,22 @@ class EchatModel {
     fun getMessage(messageDAO: MessageDAO) = getMessage(messageDAO.id)
 
     fun getMessagesByChat(chatDAO: ChatDAO): List<MessageDAO> =
-            messageRepository.findAllByChatDAO(chatDAO)
+        messageRepository.findAllByChatDAO(chatDAO)
 
     fun isUserIsMessageAuthor(accountDAO: AccountDAO, messageDAOId: MessageDAO?) =
-            messageDAOId?.let { getMessage(it)?.sender } == accountDAO
+        messageDAOId?.let { getMessage(it)?.sender } == accountDAO
 
-    fun setMessageRead(messageId: Long) {
+    fun setMessageRead(messageId: Long, accountDAO: AccountDAO) {
         getMessage(messageId)?.let {
-            readHistoryRepository.findByMessageDAO(it)
-                    ?.let { readEntity -> readHistoryRepository.save(readEntity.apply { status = ReadHistoryDAO.Status.READ }) }
+            readHistoryRepository.findByMessageDAOAndReader(it, accountDAO)
+                ?.let { readEntity ->
+                    readHistoryRepository.save(readEntity.apply { status = ReadHistoryDAO.Status.READ })
+                }
         }
     }
 
     fun getAllUnreadMessagesByUser(accountDAO: AccountDAO): List<MessageDAO> =
-            readHistoryRepository.findAllByReaderAndStatus(accountDAO, ReadHistoryDAO.Status.NOT_READ).map {
-                var message = it.messageDAO
-                message.sender.removeAuthorizationAndPasswordFromEntity()
-                while (true) {
-                    var receiver = message.receiver
-                    receiver?.sender?.removeAuthorizationAndPasswordFromEntity()
-                    if (receiver == null) break
-                }
-
-                message.chatDAO.apply {
-                    chatParticipants.onEach { participant -> participant.removeAuthorizationAndPasswordFromEntity() }
-                    chatAdmins.onEach { admin -> admin.removeAuthorizationAndPasswordFromEntity() }
-                }
-
-            message
-        }.sortedBy { it.created }
+        readHistoryRepository.findAllByReaderAndStatus(accountDAO, ReadHistoryDAO.Status.NOT_READ).map { it.messageDAO }
+            .sortedBy { it.created }
 
 }
