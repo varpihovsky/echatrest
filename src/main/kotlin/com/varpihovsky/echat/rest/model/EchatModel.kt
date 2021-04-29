@@ -76,8 +76,8 @@ class EchatModel {
     fun getAllUsers(): List<AccountDAO> =
         accountRepository.findAll().toList()
 
-    fun createChat(creator: AccountDAO, chatName: String): ChatDAO {
-        ChatDAO(0, chatName, mutableListOf(creator), mutableListOf(creator)).let {
+    fun createChat(creator: AccountDAO, chatName: String, type: ChatDAO.Type): ChatDAO {
+        ChatDAO(0, chatName, mutableListOf(creator), mutableListOf(creator), type).let {
             chatRepository.save(it)
             return it
         }

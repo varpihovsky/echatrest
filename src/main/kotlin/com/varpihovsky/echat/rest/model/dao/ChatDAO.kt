@@ -19,8 +19,15 @@ data class ChatDAO(
 
         @ManyToMany(fetch = FetchType.LAZY)
         @JoinColumn(name = "user_account_participant_id", nullable = false)
-        var chatParticipants: MutableList<AccountDAO>
+        var chatParticipants: MutableList<AccountDAO>,
+
+        @Column(name = "type")
+        var type: Type
 
 ) : DAO {
-    constructor() : this(0, "", mutableListOf(), mutableListOf())
+    constructor() : this(0, "", mutableListOf(), mutableListOf(), Type.OPEN)
+
+    enum class Type {
+        OPEN, CLOSED
+    }
 }

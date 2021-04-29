@@ -26,10 +26,16 @@ class ChatController {
     @PostMapping("/create")
     fun createChat(
         @RequestParam(name = AUTHORIZATION_KEY_PARAM) key: String,
-        @RequestParam(name = CHAT_NAME_PARAM) name: String
+        @RequestParam(name = CHAT_NAME_PARAM) name: String,
+        @RequestParam(name = "type", required = false) type: String?
     ): ResponseEntity<ChatDTO> =
         echatModel.authorizedUserMap(key, HttpStatus.FORBIDDEN) {
-            ResponseEntity.ok(dtoFactory.createDTO(echatModel.createChat(it, name)))
+            val typeDAO = when (type) {
+                "open" -> ChatDAO.Type.OPEN
+                "closed" -> ChatDAO.Type.CLOSED
+                else -> ChatDAO.Type.OPEN
+            }
+            ResponseEntity.ok(dtoFactory.createDTO(echatModel.createChat(it, name, typeDAO)))
         }
 
     @ResponseStatus
@@ -51,7 +57,19 @@ class ChatController {
     @GetMapping("/get/all")
     fun getAllChats(@RequestParam(name = AUTHORIZATION_KEY_PARAM) key: String): ResponseEntity<ResponseList<ChatDTO>> =
         echatModel.authorizedUserMap(key, HttpStatus.FORBIDDEN) {
-            ResponseEntity.ok(ResponseList(echatModel.getAllChats().map { dtoFactory.createDTO(it) }))
+            ResponseEntity.ok(ResponseList(echatModel.getAllChats().map<ChatDAO, ChatDTO> { dtoFactory.createDTO(it) }
+                .filter { it.type == ChatDAO.Type.OPEN }))
+        }
+
+    @ResponseBody
+    @GetMapping("/get/by-name")
+    fun getChatsByName(
+        @RequestParam(name = AUTHORIZATION_KEY_PARAM) key: String,
+        @RequestParam(name = "name") name: String
+    ): ResponseEntity<ResponseList<ChatDTO>> =
+        echatModel.authorizedUserMap(key, HttpStatus.FORBIDDEN) {
+            ResponseEntity.ok(ResponseList(echatModel.getAllChats().map<ChatDAO, ChatDTO> { dtoFactory.createDTO(it) }
+                .filter { it.type == ChatDAO.Type.OPEN }))
         }
 
     @ResponseBody
@@ -61,7 +79,11 @@ class ChatController {
         @RequestParam(name = ID_PARAM) id: Long
     ) =
         echatModel.authorizedUserMap(key, HttpStatus.FORBIDDEN) {
-            ResponseEntity.ok(ResponseList(echatModel.getAllChatsByUser(it).map { dtoFactory.createDTO(it) }))
+            ResponseEntity.ok(
+                ResponseList(
+                    echatModel.getAllChatsByUser(it).map<ChatDAO, ChatDTO> { dtoFactory.createDTO(it) }
+                        .filter { it.type == ChatDAO.Type.OPEN })
+            )
         }
 
     @ResponseStatus
@@ -181,7 +203,7 @@ class ChatController {
         @RequestParam(name = AUTHORIZATION_KEY_PARAM) key: String,
         @RequestParam(name = CHAT_ID_PARAM) chatId: Long,
         @RequestParam(name = LOGIN_PARAM, required = false) login: String?,
-        @RequestParam(name = ID_PARAM, required = false) adminId: Long
+        @RequestParam(name = ID_PARAM, required = false) adminId: Long?
     ): ResponseEntity<Any> =
         if (login != null && adminId == null) {
             removeAdminFromChatByLogin(key, chatId, login)
@@ -211,6 +233,21 @@ class ChatController {
                 ResponseEntity(HttpStatus.FORBIDDEN)
             }
 
+        }
+
+    @ResponseStatus
+    @PostMapping("/join")
+    fun joinToChat(
+        @RequestParam(name = AUTHORIZATION_KEY_PARAM) key: String,
+        @RequestParam(name = ID_PARAM) chatId: Long
+    ): ResponseEntity<Any> =
+        echatModel.authorizedUserMap(key, HttpStatus.FORBIDDEN) {
+            if (echatModel.getChat(chatId)?.type == ChatDAO.Type.OPEN) {
+                echatModel.addParticipantToChat(it, chatId)
+                ResponseEntity.ok().build()
+            } else {
+                ResponseEntity(HttpStatus.NOT_ACCEPTABLE)
+            }
         }
 
     @ResponseStatus
