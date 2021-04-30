@@ -93,7 +93,8 @@ class EchatModel {
         }
     }
 
-    fun getAllChatsByUser(accountDAO: AccountDAO) = chatRepository.findAllByChatParticipants(accountDAO)
+    fun getAllChatsByUser(accountDAO: AccountDAO) =
+        chatRepository.findAllByChatParticipants(accountDAO).toSet().toList()
 
     fun isUserIsChatAdmin(accountDAO: AccountDAO, chatId: Long): Boolean =
         getChat(chatId)?.chatAdmins?.contains(accountDAO) == true
