@@ -1,9 +1,5 @@
-package com.varpihovsky.echat.rest.controllers.profile
+package com.varpihovsky.echat.rest.controllers
 
-import com.varpihovsky.echat.rest.controllers.AUTHORIZATION_KEY_PARAM
-import com.varpihovsky.echat.rest.controllers.ID_PARAM
-import com.varpihovsky.echat.rest.controllers.LOGIN_PARAM
-import com.varpihovsky.echat.rest.controllers.PASSWORD_PARAM
 import com.varpihovsky.echat.rest.controllers.response.ResponseList
 import com.varpihovsky.echat.rest.model.EchatModel
 import com.varpihovsky.echat.rest.model.dto.AccountWithPasswordDTO

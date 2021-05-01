@@ -26,6 +26,9 @@ class EchatModel {
     @Autowired
     private lateinit var readHistoryRepository: ReadHistoryRepository
 
+    @Autowired
+    private lateinit var inviteRepository: InviteRepository
+
     fun <T> authorizedUserMap(key: String, failedStatus: HttpStatus, block: (AccountDAO) -> ResponseEntity<T>)
             : ResponseEntity<T> {
         return if (authorizationRepository.isExistsByKey(key)) {
@@ -168,5 +171,28 @@ class EchatModel {
     fun getAllUnreadMessagesByUser(accountDAO: AccountDAO): List<MessageDAO> =
         readHistoryRepository.findAllByReaderAndStatus(accountDAO, ReadHistoryDAO.Status.NOT_READ).map { it.messageDAO }
             .sortedBy { it.created }
+
+    fun createInvite(chatId: Long, userId: Long) {
+        InviteDAO(0, getUserById(userId)!!, getChat(chatId)!!).let {
+            inviteRepository.save(it)
+        }
+    }
+
+    fun getInvitesByUser(accountDAO: AccountDAO): List<InviteDAO> {
+        return inviteRepository.getAllByAccount(accountDAO)
+    }
+
+    fun isUserAssignedToInvite(accountDAO: AccountDAO, inviteId: Long): Boolean =
+        inviteRepository.getById(inviteId)?.account == accountDAO
+
+    fun getInviteById(inviteId: Long) = inviteRepository.getById(inviteId)
+
+    fun removeInviteById(inviteId: Long) {
+        inviteRepository.deleteById(inviteId)
+    }
+
+    fun removeInvite(inviteDAO: InviteDAO) {
+        inviteRepository.delete(inviteDAO)
+    }
 
 }

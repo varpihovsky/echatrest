@@ -19,6 +19,7 @@ class DTOFactory {
             is ChatDAO -> createChatDTO(dao) as? T ?: throwWrongCastException()
             is MessageDAO -> createMessageDTO(dao) as? T ?: throwWrongCastException()
             is ReadHistoryDAO -> createReadHistoryDTO(dao) as? T ?: throwWrongCastException()
+            is InviteDAO -> createInviteDTO(dao) as? T ?: throwWrongCastException()
             else -> throw UnsupportedOperationException("This dao doesnt supported.")
         }
     }
@@ -66,6 +67,13 @@ class DTOFactory {
             createAccountWithoutPasswordDTO(readHistoryDAO.reader),
             createMessageDTO(readHistoryDAO.messageDAO),
             readHistoryDAO.status
+        )
+
+    private fun createInviteDTO(inviteDAO: InviteDAO) =
+        InviteDTO(
+            inviteDAO.id,
+            createAccountWithoutPasswordDTO(inviteDAO.account),
+            createChatDTO(inviteDAO.chat)
         )
 
     private fun throwWrongCastException(): Nothing =
