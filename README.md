@@ -32,7 +32,7 @@ Has a /chat mapping.
 ### Invite
 Has a /invite mapping.
 |Method|Command|Description|
-|-------|-----------|
+|------|-------|-----------|
 |POST|/invite?key={authorization key}&chat-id={id}&id={profile id}| Creates invite entity which contains chat and participant. Only chat admin can send invitation. Returns http codes only.|
 |GET|/get/all?key={authorization key}| Returns all invite entities that you received.|
 |POST|/accept?key={authorization key}&id={invitation id}| Removes invite from database and adds you to chat. Returns http codes only.|
