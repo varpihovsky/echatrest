@@ -26,7 +26,7 @@ Has a /chat mapping.
 |GET|/get/by-name?key={authorization key}&name={search query}| Returns open chats that contain query in their name.|
 |GET|/get/by-participant?key={authorization key}&id={profile id}| Returns open chats in which participant takes a part.|
 |POST|/remove/participant?key={authorization key}&chat-id={id}&login={participant login}&id={participant id}| Deletes participant if user that sent http request is chat admin. **Should only contain login OR id parameter.** Returns http codes only.|
-|POST|/add/admin??key={authorization key}&chat-id={id}&login={participant login}&id={participant id}| Marks profile if user that sent http request is chat admin. *Should only contain login OR id parameter.** Returns http codes only.|
+|POST|/add/admin?key={authorization key}&chat-id={id}&login={participant login}&id={participant id}| Marks profile if user that sent http request is chat admin. *Should only contain login OR id parameter.** Returns http codes only.|
 |POST|/remove/admin?key={authorization key}&chat-id={id}&login={participant login}&id={participant id}| Marks profile as regular participant if user that sent http request is chat admin *Should only contain login OR id parameter.** Returns http codes only.|
 |POST|/join?key={authorization key}&id={chat id}| Marks user's profile that sent http request as chat participant only if it is open. Returns http codes only.|
 ### Invite
