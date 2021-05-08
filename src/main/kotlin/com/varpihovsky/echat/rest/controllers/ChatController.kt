@@ -30,7 +30,11 @@ class ChatController {
             val typeDAO = when (type) {
                 "open" -> ChatDAO.Type.OPEN
                 "closed" -> ChatDAO.Type.CLOSED
-                else -> ChatDAO.Type.OPEN
+                else -> if (type != null) {
+                    return@authorizedUserMap ResponseEntity(HttpStatus.BAD_REQUEST)
+                } else {
+                    ChatDAO.Type.OPEN
+                }
             }
             ResponseEntity.ok(dtoFactory.createDTO(echatModel.createChat(it, name, typeDAO)))
         }
@@ -78,8 +82,10 @@ class ChatController {
         echatModel.authorizedUserMap(key, HttpStatus.FORBIDDEN) {
             ResponseEntity.ok(
                 ResponseList(
-                    echatModel.getAllChatsByUser(it).map<ChatDAO, ChatDTO> { dtoFactory.createDTO(it) }
-                        .filter { it.type == ChatDAO.Type.OPEN })
+                    echatModel.getUserById(id)?.let {
+                        echatModel.getAllChatsByUser(it).map<ChatDAO, ChatDTO> { dtoFactory.createDTO(it) }
+                            .filter { it.type == ChatDAO.Type.OPEN }
+                    } ?: throw Exception())
             )
         }
 
